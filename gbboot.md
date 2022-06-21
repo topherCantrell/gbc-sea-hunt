@@ -17,17 +17,17 @@
 0008: CB 7C        BIT   7,H                     ; ... to ...
 000A: 20 FB        JR    NZ,$0007                ; ... 9FFF
 
-000C: 21 26 FF     LD    HL,$FF26                ; Setup Audio
-000F: 0E 11        LD    C,$11                   ;
-0011: 3E 80        LD    A,$80                   ;
-0013: 32           LD    (HL-),A                 ;
-0014: E2           LD    ($FF00+C),A             ;
-0015: 0C           INC   C                       ;
-0016: 3E F3        LD    A,$F3                   ;
-0018: E2           LD    ($FF00+C),A             ;
-0019: 32           LD    (HL-),A                 ;
-001A: 3E 77        LD    A,$77                   ;
-001C: 77           LD    (HL),A                  ;
+000C: 21 26 FF     LD    HL,$FF26                ; Top sound register FF26
+000F: 0E 11        LD    C,$11                   ; Pointer to FF11 (Channel 1 registers)
+0011: 3E 80        LD    A,$80                   ; Set FF26 to ...
+0013: 32           LD    (HL-),A                 ; ... 10000000 (all sound on)
+0014: E2           LD    ($FF00+C),A             ; Set FF11 to 10000000 (Ch1 to 50% duty wave)
+0015: 0C           INC   C                       ; C now points to FF12
+0016: 3E F3        LD    A,$F3                   ; Set FF12 to 1111_0_011 full volume, ...
+0018: E2           LD    ($FF00+C),A             ; ... decrease envelope, 3 envelope sweeps
+0019: 32           LD    (HL-),A                 ; Set FF25 to 11110011 (all sounds to S02 and 1,2 to SO1)
+001A: 3E 77        LD    A,$77                   ; Set FF24 to 0_111_0_111 ...
+001C: 77           LD    (HL),A                  ; ... SO1, SO2 full volume, Vin to SO1 and SO2 disabled (no external sound)
 
 001D: 3E FC        LD    A,$FC                   ; 11_11_11_00 : Values 3,2,1 are solid black. Value 0 is white.
 001F: E0 47        LD    ($FF00+$47),A           ; Set the backround gray scale values (black and white)
@@ -73,8 +73,6 @@
 0051: 2E 0F        LD    L,$0F                   ; End of the top row (980F)
 0053: 18 F3        JR    $0048                   ; Do the next row
 
-; Scroll logo on screen, and play logo sound
-
 ; The screen is 144 pixels high. The center point is 72.
 0055: 67           LD    H,A                     ; Initialize scroll count, H=0
 0056: 3E 64        LD    A,$64                   ; Starting Y coordinate for visible window
@@ -96,20 +94,24 @@
 006D: 1D           DEC   E                       ; MSB delay between scrolls
 006E: 20 F2        JR    NZ,$0062                ; Not time ... keep counting
 ;
-0070: 0E 13        LD    C,$13                   ;
+; Frequency 111_11000001 is
+;
+0070: 0E 13        LD    C,$13                   ; FF13 is Channel 1 frequencey lower 8 bits (of 11)
 0072: 24           INC   H                       ; increment scroll count
 0073: 7C           LD    A,H                     ;
-0074: 1E 83        LD    E,$83                   ;
-0076: FE 62        CP    $62                     ; $62 counts in, play sound #1
-0078: 28 06        JR    Z,$0080                 ;
-007A: 1E C1        LD    E,$C1                   ;
-007C: FE 64        CP    $64                     ;
-007E: 20 06        JR    NZ,$0086                ; $64 counts in, play sound #2
-0080: 7B           LD    A,E                     ; play sound
-0081: E2           LD   ($FF00+C),A              ;
-0082: 0C           INC   C                       ;
-0083: 3E 87        LD    A,$87                   ;
-0085: E2           LD    ($FF00+C),A             ;
+0074: 1E 83        LD    E,$83                   ; Sound 1: 111_10000011 is 131072/(2048-1923) = 1048.6Hz (Nearly C6)
+0076: FE 62        CP    $62                     ; $62 counts in ...
+0078: 28 06        JR    Z,$0080                 ; ... play first tone
+007A: 1E C1        LD    E,$C1                   ; Sound 2: 111_11000001 is 131072/(2048-1985) = 2080.51Hz (Nearly C7)
+007C: FE 64        CP    $64                     ; $64 counts in ...
+007E: 20 06        JR    NZ,$0086                ; ... play second tone
+;
+0080: 7B           LD    A,E                     ; E has lower 8 bits of frequency
+0081: E2           LD   ($FF00+C),A              ; Store lower 8 bits into FF13
+0082: 0C           INC   C                       ; FF14 is Channel 1 frequency upper 3 bits and control
+0083: 3E 87        LD    A,$87                   ; 10000111: Restart sound, ...
+0085: E2           LD    ($FF00+C),A             ; ... upper 3 bits of frequency is 111
+;
 0086: F0 42        LD    A,($FF00+$42)           ;
 0088: 90           SUB   B                       ;
 0089: E0 42        LD    ($FF00+$42),A           ; scroll logo up if B=1
