@@ -1,3 +1,4 @@
+```
 ; GameBoy boot ROM.
 ;
 ; Originally from here: https://gist.github.com/drhelius/6063288
@@ -204,3 +205,4 @@ MakeOneTile:
 00FA: 20 FE        JR    NZ,$FE                  ; if $19 + bytes from $0134-$014D don't add to $00 ... lock up
 00FC: 3E 01        LD    A,$01                   ; Write 1 to turn off DMG and continue with cartridge ...
 00FE: E0 50        LD    ($FF00+$50),A           ; ... or any other value to lock up
+```
